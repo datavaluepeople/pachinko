@@ -13,8 +13,7 @@ lint:
 	mypy carrey
 	black --check .
 	isort --check .
-	pydocstyle .
-
+	pydocstyle carrey
 
 test:
 	pytest tests
