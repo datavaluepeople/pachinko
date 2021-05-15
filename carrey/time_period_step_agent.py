@@ -48,7 +48,7 @@ class EpsilonGreedy:
             # Set conversion rate to infinity for unchosen actions
             # to ensure all actions are tested at least once
             action: n_conv / n_chosen if n_chosen != 0 else np.inf
-            for action, (n_conv, n_chosen) in self.conversion_counts.items()
+            for action, (n_chosen, n_conv) in self.conversion_counts.items()
         }
         best_action = max(conversion_rate, key=conversion_rate.get)
 
