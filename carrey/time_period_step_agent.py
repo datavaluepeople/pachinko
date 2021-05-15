@@ -1,7 +1,8 @@
 """Agents interaction with time period step environments."""
-from typing import Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from scipy.stats import gamma
 
 
 class RandomAgent:
@@ -55,3 +56,62 @@ class EpsilonGreedy:
 
         self.previous_action = action
         return action, {}
+
+
+class Periodic:
+    """Agent that maintains and optimises on separate conversion rates for each step in period."""
+
+    def __init__(self, env: Any, period_length: int):
+        self.action_space = env.action_space
+        # List of dicts of actions mapped to tuple of (num_trails, num_successes) for
+        # action period idx
+        self.conversion_counts: List[Dict[Any, List[int]]] = [
+            {action: [0, 0] for action in range(self.action_space.n)} for _ in range(period_length)
+        ]
+        # Set conversion rate to infinity for unchosen actions
+        # to ensure all actions are tested at least once
+        self.upper_confidence_bounds = [
+            {action: np.inf for action in range(self.action_space.n)} for _ in range(period_length)
+        ]
+        self.previous_action = None
+        self.step_number = 0
+        self.period_length = period_length
+
+    @staticmethod
+    def compute_UCB_gamma(
+        total_trials: int,
+        total_successes: int,
+        prior_alpha: float = 1.0,
+        prior_beta: float = 0.0001,
+        ucb_percentile: float = 0.95,
+    ) -> float:
+        """Compute Bayesian update on Gamma dist with priors and compute upper percentile value."""
+        alpha = prior_alpha + total_successes
+        beta = prior_beta + total_trials
+        return gamma.ppf(ucb_percentile, alpha, scale=(1/beta))
+
+    def act(self, previous_observation: np.array) -> Any:
+        """Choose action with highest upper confidence bound for step in period.
+
+        Also use previous observation to update upper confidence bound for previous step in period.
+        """
+        current_idx = self.step_number % self.period_length  # current index within period length
+        prev_idx = (self.step_number - 1) % self.period_length
+
+        if self.previous_action is not None:
+            self.conversion_counts[prev_idx][self.previous_action][0] += 1
+            self.conversion_counts[prev_idx][self.previous_action][1] += previous_observation[1]
+
+            self.upper_confidence_bounds[prev_idx][self.previous_action] = self.compute_UCB_gamma(
+                self.conversion_counts[prev_idx][self.previous_action][0],
+                self.conversion_counts[prev_idx][self.previous_action][1],
+            )
+
+        best_action = max(
+            self.upper_confidence_bounds[current_idx],
+            key=self.upper_confidence_bounds[current_idx].get,
+        )
+
+        self.previous_action = best_action
+        self.step_number += 1
+        return best_action, {"ucb_selected_action": self.upper_confidence_bounds[current_idx][best_action]}
