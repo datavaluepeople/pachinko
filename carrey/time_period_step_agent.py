@@ -15,7 +15,7 @@ class RandomAgent:
     def __init__(self, env: Any):
         self.action_space = env.action_space
 
-    def act(self, previous_observation: np.array) -> Tuple[Any, dict]:
+    def act(self, previous_observation: np.ndarray) -> Tuple[Any, dict]:
         """Choose random action."""
         return self.action_space.sample(), {}
 
@@ -37,7 +37,7 @@ class EpsilonGreedy:
         self.previous_action = None
         self.epsilon = epsilon
 
-    def act(self, previous_observation: np.array) -> Tuple[Any, dict]:
+    def act(self, previous_observation: np.ndarray) -> Tuple[Any, dict]:
         """Choose highest conversion rate action (with some exploration)."""
         n_conversions = previous_observation[1]
         if self.previous_action is not None:
@@ -50,7 +50,7 @@ class EpsilonGreedy:
             action: n_conv / n_chosen if n_chosen != 0 else np.inf
             for action, (n_chosen, n_conv) in self.conversion_counts.items()
         }
-        best_action = max(conversion_rate, key=conversion_rate.get)
+        best_action = max(conversion_rate, key=lambda k: conversion_rate[k])
 
         if np.random.rand() < self.epsilon:
             action = self.action_space.sample()
@@ -76,7 +76,7 @@ class Periodic:
         self.upper_confidence_bounds = [
             {action: np.inf for action in range(self.action_space.n)} for _ in range(period_length)
         ]
-        self.previous_action = None
+        self.previous_action: Any = None
         self.step_number = 0
         self.period_length = period_length
 
@@ -91,9 +91,9 @@ class Periodic:
         """Compute Bayesian update on Gamma dist with priors and compute upper percentile value."""
         alpha = prior_alpha + total_successes
         beta = prior_beta + total_trials
-        return gamma.ppf(ucb_percentile, alpha, scale=(1/beta))
+        return gamma.ppf(ucb_percentile, alpha, scale=(1 / beta))
 
-    def act(self, previous_observation: np.array) -> Any:
+    def act(self, previous_observation: np.ndarray) -> Any:
         """Choose action with highest upper confidence bound for step in period.
 
         Also use previous observation to update upper confidence bound for previous step in period.
@@ -112,9 +112,13 @@ class Periodic:
 
         best_action = max(
             self.upper_confidence_bounds[current_idx],
-            key=self.upper_confidence_bounds[current_idx].get,
+            key=lambda k: self.upper_confidence_bounds[current_idx][k],
         )
 
         self.previous_action = best_action
         self.step_number += 1
-        return best_action, {"ucb_selected_action": self.upper_confidence_bounds[current_idx][best_action]}
+
+        agent_info = {
+            "ucb_selected_action": self.upper_confidence_bounds[current_idx][best_action]
+        }
+        return best_action, agent_info
