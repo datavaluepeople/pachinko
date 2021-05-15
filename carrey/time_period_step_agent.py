@@ -1,5 +1,5 @@
 """Agents interaction with time period step environments."""
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -14,9 +14,9 @@ class RandomAgent:
     def __init__(self, action_space: list):
         self.action_space = action_space
 
-    def act(self, previous_observation: np.array) -> Any:
+    def act(self, previous_observation: np.array) -> Tuple[Any, dict]:
         """Choose random action."""
-        return np.random.choice(self.action_space)
+        return np.random.choice(self.action_space), {}
 
 
 class EpsilonGreedy:
@@ -33,7 +33,7 @@ class EpsilonGreedy:
         self.previous_action = None
         self.epsilon = epsilon
 
-    def act(self, previous_observation: np.array) -> Any:
+    def act(self, previous_observation: np.array) -> Tuple[Any, dict]:
         """Choose highest conversion rate action (with some exploration)."""
         n_conversions = previous_observation[1]
         if self.previous_action is not None:
@@ -54,4 +54,4 @@ class EpsilonGreedy:
             action = best_action
 
         self.previous_action = action
-        return action
+        return action, {}
