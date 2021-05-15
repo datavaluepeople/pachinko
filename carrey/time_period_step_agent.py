@@ -12,12 +12,12 @@ class RandomAgent:
         action_space: a list of the possible actions in the environment
     """
 
-    def __init__(self, action_space: list):
-        self.action_space = action_space
+    def __init__(self, env: Any):
+        self.action_space = env.action_space
 
     def act(self, previous_observation: np.array) -> Tuple[Any, dict]:
         """Choose random action."""
-        return np.random.choice(self.action_space), {}
+        return self.action_space.sample(), {}
 
 
 class EpsilonGreedy:
@@ -28,9 +28,12 @@ class EpsilonGreedy:
         epsilon: choose a random action `epsilon` percent of the time
     """
 
-    def __init__(self, action_space: list, epsilon=0.05):
-        self.action_space = action_space
-        self.conversion_counts = {action: [0, 0] for action in action_space}
+    def __init__(self, env: Any, epsilon=0.05):
+        self.action_space = env.action_space
+        # Dict of actions mapped to list of [num_trails, num_successes] for action
+        self.conversion_counts: Dict[Any, List[int]] = {
+            action: [0, 0] for action in range(self.action_space.n)
+        }
         self.previous_action = None
         self.epsilon = epsilon
 
@@ -50,7 +53,7 @@ class EpsilonGreedy:
         best_action = max(conversion_rate, key=conversion_rate.get)
 
         if np.random.rand() < self.epsilon:
-            action = np.random.choice(self.action_space)
+            action = self.action_space.sample()
         else:
             action = best_action
 
