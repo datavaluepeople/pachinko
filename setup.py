@@ -26,7 +26,7 @@ setup(
     author_email="opensource@datavaluepeople.com",
     url="https://github.com/datavaluepeople/pachinko",
     license="MIT",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests*"]),
     install_requires=REQUIREMENTS,
     python_requires=">=3.7",
     cmdclass=versioneer.get_cmdclass(),
