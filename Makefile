@@ -10,10 +10,10 @@ compile:
 
 lint:
 	flake8 .
-	mypy carrey
+	mypy pachinko
 	black --check .
 	isort --check .
-	pydocstyle carrey
+	pydocstyle pachinko
 
 test:
 	pytest tests
