@@ -1,0 +1,2 @@
+include versioneer.py
+include pachinko/_version.py
