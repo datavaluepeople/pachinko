@@ -9,7 +9,7 @@ class RandomAgent:
     """Agent taking a random action each timestep.
 
     Args:
-        action_space: a list of the possible actions in the environment
+        env: the env the agent will be run on (so that the agent knows the actions to choose from)
     """
 
     def __init__(self, env: Any):
@@ -24,7 +24,7 @@ class EpsilonGreedy:
     """Agent greedily taking the highest conversion rate action (most of the time).
 
     Args:
-        action_space: a list of the possible actions in the environment
+        env: the env the agent will be run on (so that the agent knows the actions to choose from)
         epsilon: choose a random action `epsilon` percent of the time
     """
 
