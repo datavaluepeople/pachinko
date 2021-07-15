@@ -154,3 +154,49 @@ class Periodic(BasePeriodic):
         alpha = prior_alpha + total_successes
         beta = prior_beta + total_trials
         return gamma.ppf(ucb_percentile, alpha, scale=(1 / beta))
+
+
+class ForgettingPeriodic(BasePeriodic):
+    """Agent that maintains and optimises on separate conversion rates for each step in period.
+
+    Observations have a chance of being excluded from consideration, with the chance of including
+    observations in the past exponentially decaying.
+
+    Args:
+        env: the env the agent will be run on (so that the agent knows the actions to choose from)
+        period_length: the length defining a repeating period, where each step will have a separate
+            conversion rate. eg for a weekly periodicity, where each weekday has its own conversion
+            rate, use period_length=7
+        exponential_decay_constant: forget observations in the past with probability
+            exp((num timesteps since) * exponential_decay_constant). For example, to set the
+            probability of observations from a year ago to be included to be 0.05, set
+            exponential_decay_constant to be -ln(0.05) / 365. Default: roughly -ln(0.05) / 365 as
+            described
+    """
+
+    def __init__(self, env: Any, period_length: int, exponential_decay_constant: float = 1 / 120):
+        super().__init__(env=env, period_length=period_length)
+        self.exponential_decay_constant = exponential_decay_constant
+
+    def compute_UCB_gamma(
+        self,
+        conversions: ConversionHistory,
+        prior_alpha: float = 1.0,
+        prior_beta: float = 0.0001,
+        ucb_percentile: float = 0.95,
+    ) -> float:
+        """Compute Bayesian update on Gamma dist with priors and compute upper percentile value.
+
+        Observations have a chance of being excluded from consideration, with the chance of
+        including observations in the past exponentially decaying.
+        """
+        time_since = np.array([self.step_number - c[1] for c in conversions])
+        chance_of_including = np.exp(-time_since * self.exponential_decay_constant)
+        include_obs = np.random.random(len(time_since)) <= chance_of_including
+        chosen_conversions = [c[0] for c, include in zip(conversions, include_obs) if include]
+
+        total_trials = len(chosen_conversions)
+        total_successes = sum(chosen_conversions)
+        alpha = prior_alpha + total_successes
+        beta = prior_beta + total_trials
+        return gamma.ppf(ucb_percentile, alpha, scale=(1 / beta))
